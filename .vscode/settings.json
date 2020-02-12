@@ -1,0 +1,19 @@
+{
+    "git.ignoreLimitWarning": true,
+    "files.associations": {
+        "__split_buffer": "cpp",
+        "algorithm": "cpp",
+        "bitset": "cpp",
+        "complex": "cpp",
+        "deque": "cpp",
+        "iterator": "cpp",
+        "list": "cpp",
+        "memory": "cpp",
+        "vector": "cpp",
+        "*.inc": "cpp",
+        "*.tcc": "cpp",
+        "istream": "cpp",
+        "streambuf": "cpp",
+        "tuple": "cpp"
+    }
+}

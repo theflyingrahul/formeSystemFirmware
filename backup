@@ -1,0 +1,193 @@
+#include <ESP8266WiFi.h>
+#define RELAY 0 // relay connected to  GPIO0
+
+WiFiServer server(80);
+IPAddress  apIP(10, 10, 10, 1);   // Private network address: local & gateway
+int value = LOW;
+
+void setup(){
+
+  Serial.begin(115200);
+  Serial.println();
+
+  pinMode(RELAY,OUTPUT);
+  digitalWrite(RELAY, LOW);
+  Serial.print("Diagnostic: RELAY OFF");
+
+  Serial.print("Use this URL to connect: ");
+  Serial.print(WiFi.localIP());
+  Serial.println("/");
+
+  WiFi.mode(WIFI_AP_STA);
+  WiFi.softAPConfig(apIP, apIP, IPAddress(255, 255, 255, 0));   // subnet FF FF FF 00
+
+  Serial.print("Setting AP... ");
+  boolean result = WiFi.softAP("Forme Prototype 1", "formeprototype1");
+  if(result == true){
+    Serial.println("Ready");
+  }
+  else{
+    Serial.println("Failed!");
+  }
+  server.begin();
+}
+
+void loop(){
+
+  if(WiFi.softAPgetStationNum()!=0){
+
+    WiFiClient client = server.available();
+
+    if (!client) 
+    {
+      return;
+    }
+  
+    // Wait until the client sends some data
+    Serial.println("new client");
+    while(!client.available())
+    {
+      delay(1);
+    }
+
+    // Read the first line of the request
+    String request = client.readStringUntil('\r');
+    Serial.println(request);
+    client.flush();
+  
+    // Match the request
+    if (request.indexOf("/RELAY=ON") != -1)  
+    {
+      Serial.println("RELAY=ON");
+      digitalWrite(RELAY,LOW);
+      value = LOW;
+      Serial.print("Diagnostic: RELAY ON");
+    }
+    if (request.indexOf("/RELAY=OFF") != -1)  
+    {
+      Serial.println("RELAY=OFF");
+      digitalWrite(RELAY,HIGH);
+      value = HIGH;
+      Serial.print("Diagnostic: RELAY OFF");
+    }
+    
+    // Return the response
+    client.println("HTTP/1.1 200 OK");
+    client.println("Content-Type: text/html");
+    client.println(""); // this is a must
+    client.println("<!DOCTYPE HTML>");
+    client.println("<html style=\"margin:0;padding:0;height:100%;\">");
+    client.println("");
+    client.println("<head style=\"margin: 0;");
+    client.println("  padding: 0;\">");
+    client.println("    <title style=\"margin: 0;");
+    client.println("  padding: 0;\">Forme Web Diagnostics</title>");
+    client.println("    <link rel=\"stylesheet\" type=\"text/css\" href=\"style/style.css\" title=\"style\" style=\"margin: 0;");
+    client.println("  padding: 0;\">");
+    client.println("</head>");
+    client.println("");
+    client.println("<body style=\"margin:0;padding:0;font:normal .80em 'trebuchet ms', arial, sans-serif;background: #000000; url(background.png) repeat;color:#000;\">");
+    client.println("    <div id=\"main\" style=\"margin:0;padding:0;margin-left:auto;margin-right:auto;\">");
+    client.println("        <div id=\"header\" style=\"margin:0;padding:0;background:transparent;height:202px;\">");
+    client.println("            <div id=\"logo\" style=\"margin:0;padding:0;margin-left:auto;margin-right:auto;width:898px;position:relative;height:148px;border-bottom:2px solid #FFF;\">");
+    client.println("                <div id=\"logo_text\" style=\"margin:0;padding:0;position:absolute;top:20px;left:0;\">");
+    client.println("                    <h1 style=\"margin:0;padding:22px 0 0 0;font:normal 300% 'century gothic', arial, sans-serif;color:#FFF;border-bottom:0;text-transform:none;letter-spacing:-1px;text-decoration:none;\">Forme Charger Companion - Prototype MK1</h1>");
+    client.println("                    <h2 style=\"margin:0;padding:4px 0 0 0;font:normal 300% 'century gothic', arial, sans-serif;color:#FFF;border-bottom:0;text-transform:none;font-size:100%;\">Onboard Diagnostics</h2>");
+    client.println("                </div>");
+    client.println("            </div>");
+    client.println("            <div id=\"menubar\" style=\"margin:0;padding:0;margin-left:auto;margin-right:auto;width:898px;height:52px;background:#000;\">");
+    client.println("                <ul id=\"menu\" style=\"margin:0;padding:0;float:left;\">");
+    client.println("                    <li class=\"selected\" style=\"margin:0;padding:0;list-style-type:circle;float:left;list-style:none;\"><a href=\"/status\" style=\"margin:10px 0 0 10px;padding:9px 26px 6px 26px;outline:none;text-decoration:none;color:#FFF;letter-spacing:0.1em;font:normal 100% arial, sans-serif;display:block;float:left;height:17px;text-align:center;text-transform:uppercase;background:transparent url(transparent_light.png) repeat;\">System Status</a></li>");
+    client.println("                    <li style=\"margin:0;padding:0;list-style-type:circle;float:left;list-style:none;\"><a href=\"/devices\" style=\"margin:10px 0 0 10px;padding:9px 26px 6px 26px;outline:none;text-decoration:none;color:#FFF;letter-spacing:0.1em;font:normal 100% arial, sans-serif;display:block;float:left;height:17px;text-align:center;text-transform:uppercase;background:transparent;\">Connected Devices</a></li>");
+    client.println("                    <li style=\"margin:0;padding:0;list-style-type:circle;float:left;list-style:none;\"><a href=\"/control\" style=\"margin:10px 0 0 10px;padding:9px 26px 6px 26px;outline:none;text-decoration:none;color:#FFF;letter-spacing:0.1em;font:normal 100% arial, sans-serif;display:block;float:left;height:17px;text-align:center;text-transform:uppercase;background:transparent;\">Manual Control</a></li>");
+    client.println("                    <li style=\"margin:0;padding:0;list-style-type:circle;float:left;list-style:none;\"><a href=\"/reset\" style=\"margin:10px 0 0 10px;padding:9px 26px 6px 26px;outline:none;text-decoration:none;color:#FFF;letter-spacing:0.1em;font:normal 100% arial, sans-serif;display:block;float:left;height:17px;text-align:center;text-transform:uppercase;background:transparent;\">Reset</a></li>");
+    client.println("                    <li style=\"margin:0;padding:0;list-style-type:circle;float:left;list-style:none;\"><a href=\"about\" style=\"margin:10px 0 0 10px;padding:9px 26px 6px 26px;outline:none;text-decoration:none;color:#FFF;letter-spacing:0.1em;font:normal 100% arial, sans-serif;display:block;float:left;height:17px;text-align:center;text-transform:uppercase;background:transparent;\">About</a></li>");
+    client.println("                </ul>");
+    client.println("            </div>");
+    client.println("        </div>");
+    client.println("        <div id=\"site_content\" style=\"margin:0 auto 0 auto;padding:0 24px 20px 20px;margin-left:auto;margin-right:auto;width:854px;overflow:hidden;background:#FFF;\">");
+    client.println("            <div id=\"content\" style=\"margin:0;padding:0;text-align:left;float:left;width:595px;\">");
+    client.println("                <table style=\"width:100%;margin:10px 0 30px 0;padding:0;\">");
+    client.println("                    <tr style=\"margin: 0;");
+    client.println("  padding: 0;\">");
+    client.println("                        <td style=\"margin:0;padding:7px 4px;background:#F0EFE2;color:#47433F;text-align:left;border-top:1px solid #FFF;\">");
+    client.println("                            <h4 style=\"margin:0;padding:0 0 5px 0;font:normal 120% arial, sans-serif;color:#000;\">System Status: </h4>");
+    client.println("                        </td>");
+    client.println("                        <td style=\"margin:0;padding:7px 4px;background:#F0EFE2;color:#47433F;text-align:left;border-top:1px solid #FFF;\">");
+    client.println("                            <h4 style=\"margin:0;padding:0 0 5px 0;font:normal 120% arial, sans-serif;color:#000;\">OK</h4>");
+    client.println("                        </td>");
+    client.println("                    </tr>");
+    client.println("                    <tr style=\"margin: 0;");
+    client.println("  padding: 0;\">");
+    client.println("                        <td style=\"margin:0;padding:7px 4px;background:#F0EFE2;color:#47433F;text-align:left;border-top:1px solid #FFF;\">");
+    client.println("                            <h4 style=\"margin:0;padding:0 0 5px 0;font:normal 120% arial, sans-serif;color:#000;\">Controller Status: </h4>");
+    client.println("                        </td>");
+    client.println("                        <td style=\"margin:0;padding:7px 4px;background:#F0EFE2;color:#47433F;text-align:left;border-top:1px solid #FFF;\">");
+    client.println("                            <h4 style=\"margin:0;padding:0 0 5px 0;font:normal 120% arial, sans-serif;color:#000;\">Normal</h4>");
+    client.println("                        </td>");
+    client.println("                    </tr>");
+    client.println("                    <tr style=\"margin: 0;");
+    client.println("  padding: 0;\">");
+    client.println("                        <td style=\"margin:0;padding:7px 4px;background:#F0EFE2;color:#47433F;text-align:left;border-top:1px solid #FFF;\">");
+    client.println("                            <h4 style=\"margin:0;padding:0 0 5px 0;font:normal 120% arial, sans-serif;color:#000;\">Relay Status: </h4>");
+    client.println("                        </td>");
+    client.println("                        <td style=\"margin:0;padding:7px 4px;background:#F0EFE2;color:#47433F;text-align:left;border-top:1px solid #FFF;\">");
+    client.print("                            <h4 style=\"margin:0;padding:0 0 5px 0;font:normal 120% arial, sans-serif;color:#000;\">");
+    
+    if(value == LOW)
+      client.print("ON");
+    else
+      client.print("OFF");
+    
+    client.println("</h4>");
+    client.println("                        </td>");
+    client.println("                    </tr>");
+    client.println("                    <tr style=\"margin: 0;");
+    client.println("  padding: 0;\">");
+    client.println("                        <td style=\"margin:0;padding:7px 4px;background:#F0EFE2;color:#47433F;text-align:left;border-top:1px solid #FFF;\">");
+    client.println("                            <h4 style=\"margin:0;padding:0 0 5px 0;font:normal 120% arial, sans-serif;color:#000;\">Charging Status: </h4>");
+    client.println("                        </td>");
+    client.println("                        <td style=\"margin:0;padding:7px 4px;background:#F0EFE2;color:#47433F;text-align:left;border-top:1px solid #FFF;\">");
+    client.println("                            <h4 style=\"margin:0;padding:0 0 5px 0;font:normal 120% arial, sans-serif;color:#000;\">");
+    
+    if(value == LOW)
+      client.print("Plugged in, charging");
+    else
+      client.print("Not charging");
+
+    client.println("</h4>");
+    client.println("                        </td>");
+    client.println("                    </tr>");
+    client.println("<tr style=\"margin: 0; padding: 0;\">");
+    client.println("<td style=\"margin:0;padding:7px 4px;background:#F0EFE2;color:#47433F;text-align:left;border-top:1px solid #FFF;\">");
+    client.println("<h4 style=\"margin:0;padding:0 0 5px 0;font:normal 120% arial, sans-serif;color:#000;\">Input Voltage: </h4>");
+    client.println("                        </td>");
+    client.println("                        <td style=\"margin:0;padding:7px 4px;background:#F0EFE2;color:#47433F;text-align:left;border-top:1px solid #FFF;\">");
+    client.println("                            <h4 style=\"margin:0;padding:0 0 5px 0;font:normal 120% arial, sans-serif;color:#000;\">5V</h4>");
+    client.println("                        </td>");
+    client.println("                    </tr>");
+    client.println("                    <tr style=\"margin: 0;");
+    client.println("  padding: 0;\">");
+    client.println("                        <td style=\"margin:0;padding:7px 4px;background:#F0EFE2;color:#47433F;text-align:left;border-top:1px solid #FFF;\">");
+    client.println("                            <h4 style=\"margin:0;padding:0 0 5px 0;font:normal 120% arial, sans-serif;color:#000;\">Diagnostic IP: </h4>");
+    client.println("                        </td>");
+    client.println("                        <td style=\"margin:0;padding:7px 4px;background:#F0EFE2;color:#47433F;text-align:left;border-top:1px solid #FFF;\">");
+    client.println("                            <h4 style=\"margin:0;padding:0 0 5px 0;font:normal 120% arial, sans-serif;color:#000;\">10.10.10.1 DHCP</h4>");
+    client.println("                        </td>");
+    client.println("                    </tr>");
+    client.println("                </table>");
+    client.println("            </div>");
+    client.println("        </div>");
+    client.println("        <div id=\"footer\" style=\"margin:0;padding:24px 0 5px 0;margin-left:auto;margin-right:auto;width:898px;font:normal 100% 'lucida sans unicode', arial, sans-serif;height:33px;text-align:center;background:transparent;color:#FFF;text-transform:uppercase;letter-spacing:0.1em;\">");
+    client.println("            Copyright &copy; Forme | Athena");
+    client.println("        </div>");
+    client.println("    </div>");
+    client.println("</body>");
+    client.println("");
+    client.println("</html>");
+  
+    delay(1);
+    Serial.println("Client disonnected");
+    Serial.println("");
+  }
+}
